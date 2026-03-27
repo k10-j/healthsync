@@ -2,7 +2,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
-const prisma = require("../lib/prisma");
+const db = require("../lib/db");
 const env = require("../config/env");
 const { requireAuth } = require("../middleware/auth");
 
@@ -26,16 +26,19 @@ router.post("/register", async (req, res) => {
   }
 
   const { email, password, fullName } = parsed.data;
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
+  const existing = await db.query("SELECT id FROM users WHERE email = $1", [email]);
+  if (existing.rows.length) {
     return res.status(409).json({ message: "Email already exists." });
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
-    data: { email, passwordHash, fullName },
-    select: { id: true, email: true, fullName: true, createdAt: true },
-  });
+  const { rows } = await db.query(
+    `INSERT INTO users (email, password_hash, full_name)
+     VALUES ($1, $2, $3)
+     RETURNING id, email, full_name AS "fullName", created_at AS "createdAt"`,
+    [email, passwordHash, fullName ?? null]
+  );
+  const user = rows[0];
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN,
@@ -51,37 +54,31 @@ router.post("/login", async (req, res) => {
   }
 
   const { email, password } = parsed.data;
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials." });
-  }
+  const { rows } = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+  const user = rows[0];
+  if (!user) return res.status(401).json({ message: "Invalid credentials." });
 
-  const validPassword = await bcrypt.compare(password, user.passwordHash);
-  if (!validPassword) {
-    return res.status(401).json({ message: "Invalid credentials." });
-  }
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) return res.status(401).json({ message: "Invalid credentials." });
 
   const token = jwt.sign({ userId: user.id, email: user.email }, env.JWT_SECRET, {
     expiresIn: env.JWT_EXPIRES_IN,
   });
 
   return res.json({
-    user: { id: user.id, email: user.email, fullName: user.fullName, createdAt: user.createdAt },
+    user: { id: user.id, email: user.email, fullName: user.full_name, createdAt: user.created_at },
     token,
   });
 });
 
 router.get("/me", requireAuth, async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.auth.userId },
-    select: { id: true, email: true, fullName: true, createdAt: true, updatedAt: true },
-  });
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found." });
-  }
-
-  return res.json({ user });
+  const { rows } = await db.query(
+    `SELECT id, email, full_name AS "fullName", created_at AS "createdAt", updated_at AS "updatedAt"
+     FROM users WHERE id = $1`,
+    [req.auth.userId]
+  );
+  if (!rows.length) return res.status(404).json({ message: "User not found." });
+  return res.json({ user: rows[0] });
 });
 
 module.exports = router;

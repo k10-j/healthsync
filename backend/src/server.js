@@ -3,7 +3,6 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const env = require("./config/env");
-const prisma = require("./lib/prisma");
 
 const authRoutes = require("./routes/auth.routes");
 const usersRoutes = require("./routes/users.routes");
@@ -35,14 +34,6 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ message: "Internal server error." });
 });
 
-const server = app.listen(env.PORT, () => {
+app.listen(env.PORT, () => {
   console.log(`HealthSync backend listening on http://localhost:${env.PORT}`);
 });
-
-async function shutdown() {
-  await prisma.$disconnect();
-  server.close(() => process.exit(0));
-}
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);

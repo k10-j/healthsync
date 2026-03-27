@@ -1,25 +1,20 @@
 const express = require("express");
 const { z } = require("zod");
-const prisma = require("../lib/prisma");
+const db = require("../lib/db");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-const updateProfileSchema = z.object({
-  fullName: z.string().min(1),
-});
+const updateProfileSchema = z.object({ fullName: z.string().min(1) });
 
 router.get("/me", requireAuth, async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.auth.userId },
-    select: { id: true, email: true, fullName: true, createdAt: true, updatedAt: true },
-  });
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found." });
-  }
-
-  return res.json({ user });
+  const { rows } = await db.query(
+    `SELECT id, email, full_name AS "fullName", created_at AS "createdAt", updated_at AS "updatedAt"
+     FROM users WHERE id = $1`,
+    [req.auth.userId]
+  );
+  if (!rows.length) return res.status(404).json({ message: "User not found." });
+  return res.json({ user: rows[0] });
 });
 
 router.patch("/me", requireAuth, async (req, res) => {
@@ -28,13 +23,13 @@ router.patch("/me", requireAuth, async (req, res) => {
     return res.status(400).json({ message: "Invalid request body.", errors: parsed.error.issues });
   }
 
-  const user = await prisma.user.update({
-    where: { id: req.auth.userId },
-    data: { fullName: parsed.data.fullName },
-    select: { id: true, email: true, fullName: true, createdAt: true, updatedAt: true },
-  });
-
-  return res.json({ user });
+  const { rows } = await db.query(
+    `UPDATE users SET full_name = $1, updated_at = NOW()
+     WHERE id = $2
+     RETURNING id, email, full_name AS "fullName", created_at AS "createdAt", updated_at AS "updatedAt"`,
+    [parsed.data.fullName, req.auth.userId]
+  );
+  return res.json({ user: rows[0] });
 });
 
 module.exports = router;
