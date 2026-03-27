@@ -14,7 +14,7 @@ const learnRoutes = require("./routes/learn.routes");
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: ["https://healthsyync.netlify.app", "http://localhost:8080"] }));
 app.use(express.json());
 app.use(morgan("dev"));
 
