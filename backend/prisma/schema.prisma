@@ -1,0 +1,98 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum DoseStatus {
+  TAKEN
+  SKIPPED
+  MISSED
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  passwordHash String
+  fullName     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  medications  Medication[]
+  doseLogs     DoseLog[]
+  appointments Appointment[]
+}
+
+model Medication {
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  name         String
+  dosage       String?
+  frequency    String?
+  instructions String?
+  startDate    DateTime?
+  endDate      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doseLogs     DoseLog[]
+}
+
+model DoseLog {
+  id           Int         @id @default(autoincrement())
+  userId       Int
+  medicationId Int
+  scheduledFor DateTime?
+  takenAt      DateTime?
+  status       DoseStatus  @default(TAKEN)
+  note         String?
+  createdAt    DateTime    @default(now())
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medication   Medication  @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+}
+
+model Appointment {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  title         String
+  providerName  String?
+  location      String?
+  appointmentAt DateTime
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Topic {
+  /// Topic slug/id (used by the UI and returned by `/api/learn/topics`)
+  id        String   @id
+  name      String
+  nameKn    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  articles  Article[]
+}
+
+model Article {
+  id          String   @id
+  topicId     String
+  title       String
+  titleKn     String
+  excerpt     String
+  readTime    Int
+  verified    Boolean  @default(true)
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId])
+}
