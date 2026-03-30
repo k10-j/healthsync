@@ -12,7 +12,7 @@ const navItems = [
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 w-full" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
       <div
         className="mx-3 mb-3 rounded-2xl px-2 py-2 flex items-center justify-around"
         style={{
