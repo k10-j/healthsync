@@ -6,7 +6,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-background flex flex-col relative">
       <ThreeBackground />
-      <main className="flex-1 pb-20 relative z-10">
+      <main className="flex-1 pb-24 md:pb-28 relative z-10">
         <Outlet />
       </main>
       <BottomNav />

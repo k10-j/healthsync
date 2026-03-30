@@ -12,9 +12,12 @@ const navItems = [
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 w-full" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+    <nav
+      className="fixed inset-x-0 bottom-0 z-50 w-full left-0 right-0"
+      style={{ paddingBottom: "max(env(safe-area-inset-bottom), 0.5rem)", WebkitTapHighlightColor: "transparent" }}
+    >
       <div
-        className="mx-3 mb-3 rounded-2xl px-2 py-2 flex items-center justify-around"
+        className="mx-auto mb-3 max-w-5xl rounded-2xl px-2 py-2 flex items-center justify-around"
         style={{
           background: "rgba(255,255,255,0.88)",
           backdropFilter: "blur(20px)",
